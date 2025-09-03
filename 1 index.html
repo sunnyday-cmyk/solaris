@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>匿名掲示板</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    textarea, input {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      font-size: 1em;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1em;
+      background: #ff6600;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .post {
+      background: white;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .post small {
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>匿名掲示板</h1>
+
+  <form id="postForm">
+    <input type="text" id="name" placeholder="名前（任意）">
+    <textarea id="message" placeholder="悩み・話したいことを書いてください..." required></textarea>
+    <button type="submit">投稿</button>
+  </form>
+
+  <hr>
+
+  <div id="posts"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js"></script>
+
+  <script>
+    // ✅ Firebase設定
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ✅ 投稿処理
+    const form = document.getElementById("postForm");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim() || "匿名";
+      const message = document.getElementById("message").value.trim();
+      if (!message) return;
+
+      await db.collection("posts").add({
+        name,
+        message,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      form.reset();
+    });
+
+    // ✅ 投稿をリアルタイム表示
+    db.collection("posts")
+      .orderBy("timestamp", "desc")
+      .onSnapshot(snapshot => {
+        const postsDiv = document.getElementById("posts");
+        postsDiv.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const time = data.timestamp?.toDate().toLocaleString() || "";
+          postsDiv.innerHTML += `
+            <div class="post">
+              <strong>${data.name}</strong><br>
+              ${data.message}<br>
+              <small>${time}</small>
+            </div>
+          `;
+        });
+      });
+
+    // ✨ 今後の拡張ポイント
+    // - 通報ボタンを各投稿に追加
+    // - 返信ボタンでコメントスレッド
+    // - カテゴリ機能
+    // - 「いいね」などの共感ボタン
+  </script>
+
+</body>
+</html>
